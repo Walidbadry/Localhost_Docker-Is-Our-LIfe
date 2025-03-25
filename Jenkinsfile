@@ -7,13 +7,13 @@ pipeline {
     }
 
     environment {
-        SCANNER_HOME = tool 'sonar-scanner'  // Fixed variable name
+        SCANNER_HOME = tool 'sonar-scanner'
     }
 
     stages {
         stage('Git Checkout') {
             steps {
-                git branch: 'main', credentialsId: 'githup_credintials', url: 'https://github.com/Walidbadry/Localhost_Docker-Is-Our-LIfe.git'
+                git branch: 'main', credentialsId: 'github_credentials', url: 'https://github.com/Walidbadry/Localhost_Docker-Is-Our-LIfe.git'
             }
         }
         
@@ -35,10 +35,11 @@ pipeline {
             }
         }
         
-        stage('SonarQube Analysis') {  // Fixed stage name typo
+        stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonar') {
-                    sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=BoardGame -Dsonar.projectKey=BoardGame \
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                    $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=BoardGame -Dsonar.projectKey=BoardGame \
                             -Dsonar.java.binaries=.'''
                 }
             }
@@ -60,7 +61,7 @@ pipeline {
         
         stage('Publish To Nexus') {
             steps {
-               withMaven(globalMavenSettingsConfig: 'glople-setings', jdk: 'jdk17', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
+               withMaven(globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17', maven: 'maven3', mavenSettingsConfig: '', traceability: true) {
                     sh "mvn deploy"
                 }
             }
@@ -70,7 +71,7 @@ pipeline {
             steps {
                script {
                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                        sh "docker build -t walid123321/java_app_12:lol ."
+                        sh "docker build -t walid123321/java_app_12:latest ."
                     }
                }
             }
@@ -78,7 +79,7 @@ pipeline {
         
         stage('Docker Image Scan') {
             steps {
-                sh "trivy image --format table -o trivy-image-report.html walid123321/java_app_12:lol"
+                sh "trivy image --format table -o trivy-image-report.html walid123321/java_app_12:latest"
             }
         }
         
@@ -86,10 +87,69 @@ pipeline {
             steps {
                script {
                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                        sh "docker push walid123321/java_app_12:lol"
+                        sh "docker push walid123321/java_app_12:latest"
                     }
                }
             }
+        }
+        
+        stage('GitOps - Update Image Tag') {
+            steps {
+                script {
+                    def newTag = "walid123321/java_app_12:latest"
+                    
+                    sh '''
+                    # Configure Git
+                    git config --global user.email "walid882001@gmail.com"
+                    git config --global user.name "Jenkins"
+
+                    # Clone the repository
+                    git clone https://github.com/Walidbadry/Localhost_Docker-Is-Our-LIfe.git gitops-repo
+                    cd gitops-repo
+
+                    # Update the image tag in the deployment file
+                    sed -i 's|image: walid123321/java_app_12:.*|image: ''' + newTag + '''|' deployment-service.yaml
+
+                    # Commit and push changes
+                    git add k8s/deployment.yaml
+                    git commit -m "Update image to ''' + newTag + '''"
+                    git push walidbadry:${GIT_CREDENTIALS}@github.com/Walidbadry/Localhost_Docker-Is-Our-LIfe.git main
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            emailext (
+                to: 'walid882001@gmail.com',
+                subject: "Jenkins Build Success - ${JOB_NAME}",
+                body: """
+                    ✅ Build Successful!  
+                    - Job: ${JOB_NAME}  
+                    - Build: #${BUILD_NUMBER}  
+                    - Git Commit: ${GIT_COMMIT}  
+                    - Docker Image: walid123321/java_app_12:latest  
+                    
+                    Check Jenkins for details: ${BUILD_URL}
+                """
+            )
+        }
+
+        failure {
+            emailext (
+                to: 'walid882001@gmail.com',
+                subject: "Jenkins Build Failed - ${JOB_NAME}",
+                body: """
+                    ❌ Build Failed!  
+                    - Job: ${JOB_NAME}  
+                    - Build: #${BUILD_NUMBER}  
+                    - Git Commit: ${GIT_COMMIT}  
+                    
+                    Check Jenkins for details: ${BUILD_URL}
+                """
+            )
         }
     }
 }
