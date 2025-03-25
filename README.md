@@ -1,4 +1,4 @@
-<img src="[Capture.PNG](https://github.com/Walidbadry/Localhost_Docker-Is-Our-LIfe/blob/main/Capture.PNG)" alt="Pipeline Diagram" width="1000" height = "500">
+<img src="https://github.com/Walidbadry/Localhost_Docker-Is-Our-LIfe/blob/main/Capture.PNG" alt="Pipeline Diagram" width="1000" height = "500">
 
 ## Overview
 This project demonstrates a complete CI/CD DevOps pipeline running on a local environment. It integrates multiple DevOps tools to automate the software development lifecycle, ensuring continuous integration, testing, security scans, and deployment.
