@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
     
@@ -7,14 +6,15 @@ pipeline {
         maven 'maven3'
     }
 
-    enviornment {
-        SCANNER_HOME= tool 'sonar-scaner'
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'  // Fixed variable name
     }
 
     stages {
         stage('Git Checkout') {
             steps {
-                git branch: 'main', credentialsId: 'githup_credintials', url: 'https://github.com/Walidbadry/Localhost_Docker-Is-Our-LIfe.git'              }
+                git branch: 'main', credentialsId: 'githup_credintials', url: 'https://github.com/Walidbadry/Localhost_Docker-Is-Our-LIfe.git'
+            }
         }
         
         stage('Compile') {
@@ -35,11 +35,11 @@ pipeline {
             }
         }
         
-        stage('SonarQube Analsyis') {
+        stage('SonarQube Analysis') {  // Fixed stage name typo
             steps {
                 withSonarQubeEnv('sonar') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=BoardGame -Dsonar.projectKey=BoardGame \
-                            -Dsonar.java.binaries=. '''
+                    sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=BoardGame -Dsonar.projectKey=BoardGame \
+                            -Dsonar.java.binaries=.'''
                 }
             }
         }
@@ -70,7 +70,7 @@ pipeline {
             steps {
                script {
                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                            sh "docker build -t walid123321/java_app_12:lol ."
+                        sh "docker build -t walid123321/java_app_12:lol ."
                     }
                }
             }
@@ -78,7 +78,7 @@ pipeline {
         
         stage('Docker Image Scan') {
             steps {
-                sh "trivy image --format table -o trivy-image-report.html walid123321/java_app_12:lol "
+                sh "trivy image --format table -o trivy-image-report.html walid123321/java_app_12:lol"
             }
         }
         
@@ -86,15 +86,10 @@ pipeline {
             steps {
                script {
                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                            sh "docker push walid123321/java_app_12:lol"
+                        sh "docker push walid123321/java_app_12:lol"
                     }
                }
             }
         }
-
-        
-        
     }
- 
 }
-
